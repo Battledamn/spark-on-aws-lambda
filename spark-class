@@ -15,9 +15,9 @@ if [ ! -f "$JAVA_EXECUTABLE" ]; then
   if [ -n "$JAVA_HOME" ] && [ -f "$JAVA_HOME/bin/java" ]; then
     JAVA_EXECUTABLE="$JAVA_HOME/bin/java"
     echo "Using Java from JAVA_HOME: $JAVA_EXECUTABLE"
-  # Try Java 11 Amazon Corretto path
-  elif [ -f "/usr/lib/jvm/java-11-amazon-corretto/bin/java" ]; then
-    JAVA_EXECUTABLE="/usr/lib/jvm/java-11-amazon-corretto/bin/java"
+  # Try Java 17 Amazon Corretto path
+  elif [ -f "/usr/lib/jvm/java-17-amazon-corretto/bin/java" ]; then
+    JAVA_EXECUTABLE="/usr/lib/jvm/java-17-amazon-corretto/bin/java"
     echo "Using Java from Amazon Corretto path: $JAVA_EXECUTABLE"
   # Try common JRE path (for compatibility)
   elif [ -f "/usr/lib/jvm/jre/bin/java" ]; then
@@ -47,5 +47,5 @@ fi
 echo "Using Java executable: $JAVA_EXECUTABLE"
 $JAVA_EXECUTABLE -version
 
-# Use Python 3.12 paths for PySpark
-exec "$JAVA_EXECUTABLE" -cp /var/lang/lib/python3.12/site-packages/pyspark/conf/:/var/lang/lib/python3.12/site-packages/pyspark/jars/* -Xmx1g "$@"
+# Use Python 3.11 paths for PySpark
+exec "$JAVA_EXECUTABLE" -cp /var/lang/lib/python3.17/site-packages/pyspark/conf/:/var/lang/lib/python3.17/site-packages/pyspark/jars/* -Xmx1g "$@"
