@@ -76,6 +76,7 @@ RUN set -ex && \
 ENV SPARK_HOME="/var/lang/lib/python3.11/site-packages/pyspark" \
     SPARK_VERSION="${PYSPARK_VERSION}" \
     JAVA_HOME="/usr/lib/jvm/java-17-amazon-corretto" \
+    JAVA_TOOL_OPTIONS="--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED" \
     PATH="$PATH:/var/lang/lib/python3.11/site-packages/pyspark/bin:/var/lang/lib/python3.11/site-packages/pyspark/sbin:/usr/lib/jvm/java-17-amazon-corretto/bin" \
     PYTHONPATH="/var/lang/lib/python3.11/site-packages/pyspark/python:/var/lang/lib/python3.11/site-packages/pyspark/python/lib/py4j-0.10.9.7-src.zip:/home/glue_functions" \
     INPUT_PATH="" \
