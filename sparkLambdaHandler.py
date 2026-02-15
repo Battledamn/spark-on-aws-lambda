@@ -39,12 +39,26 @@ def spark_submit(s3_bucket_script: str,input_script: str, event: dict)-> None:
     # input_path = event.get('INPUT_PATH','')
     # output_path = event.get('OUTPUT_PATH', '')
 
+
+    # Java17 permission shim
+    add_opens = "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
+
     for key,value in event.items():
         os.environ[key] = value
     # Run the spark-submit command on the local copy of teh script
     try:
         logger.info(f'Spark-Submitting the Spark script {input_script} from {s3_bucket_script}')
-        subprocess.run(["spark-submit", "/tmp/spark_script.py", "--event", json.dumps(event)], check=True, env=os.environ)
+        subprocess.run(
+            [
+                "spark-submit",
+                "--conf", f"spark.driver.extraJavaOptions={add_opens}",
+                "--conf", f"spark.executor.extraJavaOptions={add_opens}",
+                "/tmp/spark_script.py",
+                "--event", json.dumps(event),
+            ],
+            check=True,
+            env=os.environ
+        )
     except Exception as e :
         logger.error(f'Error Spark-Submit with exception: {e}')
         raise e
