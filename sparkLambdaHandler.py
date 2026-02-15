@@ -28,46 +28,55 @@ def s3_script_download(s3_bucket_script: str,input_script: str)-> None:
         logger.info(f'Script {input_script} successfully downloaded to /tmp')
 
 
-
-def spark_submit(s3_bucket_script: str,input_script: str, event: dict)-> None:
+def spark_submit(s3_bucket_script: str, input_script: str, event: dict) -> None:
     """
     Submits a local Spark script using spark-submit.
     """
-     # Set the environment variables for the Spark application
-    # pyspark_submit_args = event.get('PYSPARK_SUBMIT_ARGS', '')
-    # # Source input and output if available in event
-    # input_path = event.get('INPUT_PATH','')
-    # output_path = event.get('OUTPUT_PATH', '')
 
-
-    # Java17 permission shim
     java17_shim = (
         "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED "
         "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED "
         "--add-opens=java.base/java.nio=ALL-UNNAMED"
     )
 
-    for key,value in event.items():
-        os.environ[key] = value
-    # Run the spark-submit command on the local copy of teh script
+    # 1) Export shim via env as well (catches any Java subprocesses, including launcher oddities)
+    # Append (don't overwrite) in case you already set these in the Dockerfile.
+    os.environ["JAVA_TOOL_OPTIONS"] = (os.environ.get("JAVA_TOOL_OPTIONS", "") + " " + java17_shim).strip()
+    os.environ["_JAVA_OPTIONS"] = (os.environ.get("_JAVA_OPTIONS", "") + " " + java17_shim).strip()
+
+    # 2) Copy event into env safely (stringify), but do NOT allow overwriting the Java option envs
+    for key, value in event.items():
+        if key in ("JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS"):
+            continue
+        os.environ[str(key)] = str(value)
+
+    cmd = [
+        "spark-submit",
+
+        # Driver JVM (launcher-level)
+        "--driver-java-options", java17_shim,
+
+        # Driver JVM (SparkConf-level)
+        "--conf", f"spark.driver.extraJavaOptions={java17_shim}",
+
+        # Executor JVM (SparkConf-level)
+        "--conf", f"spark.executor.extraJavaOptions={java17_shim}",
+
+        "/tmp/spark_script.py",
+        "--event", json.dumps(event),
+    ]
+
     try:
-        logger.info(f'Spark-Submitting the Spark script {input_script} from {s3_bucket_script}')
-        subprocess.run(
-            [
-                "spark-submit",
-                "--driver-java-options", java17_shim,
-                "--conf", f"spark.executor.extraJavaOptions={java17_shim}",
-                "/tmp/spark_script.py",
-                "--event", json.dumps(event),
-            ],
-            check=True,
-            env=os.environ,
-        )
-    except Exception as e :
-        logger.error(f'Error Spark-Submit with exception: {e}')
-        raise e
+        logger.info(f"Spark-Submitting the Spark script {input_script} from {s3_bucket_script}")
+        logger.info("spark-submit cmd: %s", " ".join(cmd))
+        logger.info("JAVA_TOOL_OPTIONS=%s", os.environ.get("JAVA_TOOL_OPTIONS", ""))
+        subprocess.run(cmd, check=True, env=os.environ)
+    except Exception as e:
+        logger.error(f"Error Spark-Submit with exception: {e}")
+        raise
     else:
-        logger.info(f'Script {input_script} successfully submitted')
+        logger.info(f"Script {input_script} successfully submitted")
+
 
 def lambda_handler(event, context):
 
