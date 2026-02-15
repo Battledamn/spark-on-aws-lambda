@@ -48,4 +48,4 @@ echo "Using Java executable: $JAVA_EXECUTABLE"
 $JAVA_EXECUTABLE -version
 
 # Use Python 3.11 paths for PySpark
-exec "$JAVA_EXECUTABLE" -cp /var/lang/lib/python3.17/site-packages/pyspark/conf/:/var/lang/lib/python3.17/site-packages/pyspark/jars/* -Xmx1g "$@"
+exec "$JAVA_EXECUTABLE" -cp /var/lang/lib/python3.11/site-packages/pyspark/conf/:/var/lang/lib/python3.11/site-packages/pyspark/jars/* -Xmx1g "$@"
