@@ -41,7 +41,11 @@ def spark_submit(s3_bucket_script: str,input_script: str, event: dict)-> None:
 
 
     # Java17 permission shim
-    add_opens = "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
+    java17_shim = (
+        "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED "
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED "
+        "--add-opens=java.base/java.nio=ALL-UNNAMED"
+    )
 
     for key,value in event.items():
         os.environ[key] = value
@@ -51,13 +55,13 @@ def spark_submit(s3_bucket_script: str,input_script: str, event: dict)-> None:
         subprocess.run(
             [
                 "spark-submit",
-                "--conf", f"spark.driver.extraJavaOptions={add_opens}",
-                "--conf", f"spark.executor.extraJavaOptions={add_opens}",
+                "--driver-java-options", java17_shim,
+                "--conf", f"spark.executor.extraJavaOptions={java17_shim}",
                 "/tmp/spark_script.py",
                 "--event", json.dumps(event),
             ],
             check=True,
-            env=os.environ
+            env=os.environ,
         )
     except Exception as e :
         logger.error(f'Error Spark-Submit with exception: {e}')
