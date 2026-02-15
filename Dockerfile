@@ -1,5 +1,14 @@
 FROM public.ecr.aws/lambda/python:3.11
 
+# Fail fast if we are not on an AL2-style base image with yum
+RUN set -eu; \
+    if ! command -v yum >/dev/null 2>&1; then \
+      echo "ERROR: yum package manager not found. Did you change the base image / Python version away from 3.11 (AL2)?" >&2; \
+      echo "Detected OS:" >&2; \
+      (cat /etc/os-release || true) >&2; \
+      exit 1; \
+    fi
+
 # Glue 5.0 alignment
 ARG PYSPARK_VERSION=3.5.4
 
@@ -23,10 +32,9 @@ ENV AWS_REGION=${AWS_REGION}
 # System updates and package installation
 COPY download_jars.sh /tmp/
 RUN set -ex && \
-    dnf update -y && \
-    dnf install -y wget unzip java-17-amazon-corretto-headless python3-setuptools && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf && \
+    yum install -y wget unzip java-17-amazon-corretto-headless python3-setuptools && \
+    yum clean all && \
+    rm -rf /var/cache/yum && \
     pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir setuptools wheel && \
     pip install --no-cache-dir pyspark==$PYSPARK_VERSION boto3 && \
@@ -54,10 +62,10 @@ COPY sparkLambdaHandler.py ${LAMBDA_TASK_ROOT}
 RUN if [ -f log4j.properties ]; then cp log4j.properties /var/lang/lib/python3.11/site-packages/pyspark/conf/; fi
 
 RUN set -ex && \
-    dnf update -y && \
-    dnf install -y java-17-amazon-corretto-headless && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf /tmp/* /var/tmp/* && \
+    yum update -y && \
+    yum install -y java-17-amazon-corretto-headless && \
+    yum clean all && \
+    rm -rf /var/cache/yum /tmp/* /var/tmp/* && \
     chmod -R 755 /home/glue_functions /var/lang/lib/python3.11/site-packages/pyspark && \
     # Diagnostics for spark-class
     ls -la /var/lang/lib/python3.11/site-packages/pyspark/bin/ || echo "Spark bin directory not found" && \
